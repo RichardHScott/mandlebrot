@@ -78,11 +78,10 @@ void set_default_input_params(struct Input_Params* params) {
 struct Input_Params* parse_args(int argc, char** argv) {
     int i = 0;
 
-    const int min_max_str_length = 6;
-    const char x_min_str[] = "x_min=";
-    const char x_max_str[] = "x_max=";
-    const char y_min_str[] = "y_min=";
-    const char y_max_str[] = "y_max=";
+    const char x_min_str[] = "xmin=";
+    const char x_max_str[] = "xmax=";
+    const char y_min_str[] = "ymin=";
+    const char y_max_str[] = "ymax=";
     const char steps_str[] = "steps=";
 
     struct Input_Params* params = (struct Input_Params*) malloc(sizeof(struct Input_Params));
@@ -98,13 +97,46 @@ struct Input_Params* parse_args(int argc, char** argv) {
             continue;
         }
 
-        if(0 == strncmp(argv[i] + sizeof(char), x_min_str, min_max_str_length)) {
-            double val = strtod(argv[i] + sizeof(char) + min_max_str_length, NULL);
-            if(val == 0) {
-                continue;
-            } else {
+        char* argument  = argv[i] + sizeof(char);
+
+        if(0 == strncmp(argument, x_min_str, strlen(x_min_str))) {
+            double val = strtod(argument + strlen(x_min_str), NULL);
+            if(val != 0) {
                 params->x_min = val;
             }
+            continue;
+        }
+
+        if(0 == strncmp(argument, y_min_str, strlen(y_min_str))) {
+            double val = strtod(argument + strlen(y_min_str), NULL);
+            if(val != 0) {
+                params->y_min = val;
+            }
+            continue;
+        }
+
+        if(0 == strncmp(argument, x_max_str, strlen(x_max_str))) {
+            double val = strtod(argument + strlen(x_max_str), NULL);
+            if(val != 0) {
+                params->x_max = val;
+            }
+            continue;
+        }
+
+        if(0 == strncmp(argument, y_max_str, strlen(y_max_str))) {
+            double val = strtod(argument + strlen(y_max_str), NULL);
+            if(val != 0) {
+                params->y_max = val;
+            }
+            continue;
+        }
+
+        if(0 == strncmp(argument, steps_str, strlen(steps_str))) {
+            int val = atoi(argument + strlen(steps_str));
+            if(val != 0) {
+                params->steps = val;
+            }
+            continue;
         }
     }
 
@@ -126,9 +158,8 @@ int main(int argc, char** argv) {
     double y_min = 0.5;
     double y_max = 1.0;
 
-    struct Input_Params* params = parse_args(argc, argv);
 
-    int steps = 1000;
+    struct Input_Params* params = parse_args(argc, argv);
     uint8_t* array = naive_mandlebrot(params->x_min, params->x_max, params->y_min, params->y_max, params->steps);
 
     if(array == NULL) {
@@ -136,11 +167,11 @@ int main(int argc, char** argv) {
     }
 
     struct Bitmap_Data data;
-    uint8_t* pixel_data = (uint8_t*) malloc(3*steps*steps); 
+    uint8_t* pixel_data = (uint8_t*) malloc(3* params->steps* params->steps); 
 
-    data.horizontal_pixels = steps;
-    data.vertical_pixels = steps;
-    data.bitmapArraySize = steps*steps;
+    data.horizontal_pixels =  params->steps;
+    data.vertical_pixels =  params->steps;
+    data.bitmapArraySize =  params->steps* params->steps;
     data.bitmapArray = pixel_data;
 
     for(int i = 0; i < data.bitmapArraySize; ++i) {
