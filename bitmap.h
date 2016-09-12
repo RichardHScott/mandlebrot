@@ -13,4 +13,4 @@ struct Bitmap_Data {
 
 int save_bitmap_to_disk(struct Bitmap_Data *data_ptr, FILE* file);
 
-#endif
+#endif /* BITMAP_H */
