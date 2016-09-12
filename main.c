@@ -1,10 +1,14 @@
 #include "bitmap.h"
 #include <malloc.h>
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
 
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
 #endif
+
+/* Refactor this into it's own file */
 
 double complex_magnitude(double real, double img) {
     return real*real + img*img;
@@ -19,7 +23,7 @@ uint8_t compute_convergence(double c_real, double c_img) {
         x = tmp_x*tmp_x - y*y + c_real;
         y = 2*tmp_x*y + c_img;
 
-        if(complex_magnitude(x,y) > 3) {
+        if(complex_magnitude(x,y) > 4) {
             return i;
         }
     }
@@ -54,23 +58,34 @@ uint8_t* naive_mandlebrot(double x_min, double x_max, double y_min, double y_max
 }
 
 struct Input_Params {
-
+    double x_min;
+    double x_max;
+    double y_min;
+    double y_max;
+    int steps;
 };
 
-void set_default_input_params(Input_Params* params) {
+void set_default_input_params(struct Input_Params* params) {
+    params->x_min = -0.5;
+    params->x_max = 0.3;
+    params->y_min = 0.5;
+    params->y_max = 1.0;
+    params->steps = 1000;
+
     return;
 }
 
-Input_Params* parse_args(int argc, char** argv) {
+struct Input_Params* parse_args(int argc, char** argv) {
     int i = 0;
 
-    const int min_max_str_length = 5;
+    const int min_max_str_length = 6;
     const char x_min_str[] = "x_min=";
     const char x_max_str[] = "x_max=";
     const char y_min_str[] = "y_min=";
     const char y_max_str[] = "y_max=";
+    const char steps_str[] = "steps=";
 
-    struct Input_Params* params = (Input_Params*) malloc(sizeof(Input_Params));
+    struct Input_Params* params = (struct Input_Params*) malloc(sizeof(struct Input_Params));
 
     if(params == NULL) {
         return NULL;
@@ -84,7 +99,12 @@ Input_Params* parse_args(int argc, char** argv) {
         }
 
         if(0 == strncmp(argv[i] + sizeof(char), x_min_str, min_max_str_length)) {
-
+            double val = strtod(argv[i] + sizeof(char) + min_max_str_length, NULL);
+            if(val == 0) {
+                continue;
+            } else {
+                params->x_min = val;
+            }
         }
     }
 
@@ -95,19 +115,21 @@ int main(int argc, char** argv) {
     //Following is the default set for generating the mandlebrot image.
     //It is bounded by the circle |z| = 2, Heine-Borel thus says that it
     //is compact!
-    double x_min = -2;
-    double x_max = 1;
-    double y_min = -1.5;
-    double y_max = 1.5;
+    // double x_min = -2;
+    // double x_max = 1;
+    // double y_min = -1.5;
+    // double y_max = 1.5;
 
     //Below give a nice looking picture
-    // double x_min = -0.5;
-    // double x_max = 0.3;
-    // double y_min = 0.5;
-    // double y_max = 1.0;
+    double x_min = -0.5;
+    double x_max = 0.3;
+    double y_min = 0.5;
+    double y_max = 1.0;
 
-    int steps = 2000;
-    uint8_t* array = naive_mandlebrot(x_min, x_max, y_min, y_max, steps);
+    struct Input_Params* params = parse_args(argc, argv);
+
+    int steps = 1000;
+    uint8_t* array = naive_mandlebrot(params->x_min, params->x_max, params->y_min, params->y_max, params->steps);
 
     if(array == NULL) {
         return -1;
@@ -122,7 +144,9 @@ int main(int argc, char** argv) {
     data.bitmapArray = pixel_data;
 
     for(int i = 0; i < data.bitmapArraySize; ++i) {
-        data.bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0));
+        //data.bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0));
+        data.bitmapArray[3*i] = 255*log(array[i]) / log(255);
+
         data.bitmapArray[3*i+1] = 0;
         data.bitmapArray[3*i+2] = 0;
     }
