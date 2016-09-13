@@ -27,7 +27,7 @@ typedef enum {
     INT, //shade based on iterations required to escape
     SIN, //sin based interpretation to 'lighten' quick escapes
     LOG, //log based interpretation to 'lighten' quick escapes
-    SIGMOID, //sigmod based, probably look at using tanh method as well
+    TANH, //sigmod based, probably look at using tanh method as well
  } Color_Strategy;
 
 typedef struct {
@@ -47,7 +47,7 @@ void set_default_input_params(Input_Params* params) {
     params->y_max = 1.0;
     params->steps = 1000;
 
-    params->strategy = SIGMOID;
+    params->strategy = TANH;
 
     return;
 }
@@ -181,10 +181,11 @@ int main(int argc, char** argv) {
                 data.bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0)); //sin approach
                 break;
             case LOG:
-                data.bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach
+                data.bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach, this has the highest 'gain' at the lower end
                 break;
-            case SIGMOID:
-                data.bitmapArray[3*i] = floor(512 * (1/(1+exp(-array[i])) - 0.5));//curve has form 1/(1+e^(-x))
+            case TANH:
+                data.bitmapArray[3*i] = 256 * tanh(array[i]/128); //tanh, check gradiant and bounds
+                break;
             case INT:
             default:
                 data.bitmapArray[3*i] = array[i];
