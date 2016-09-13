@@ -4,6 +4,6 @@
 #include <malloc.h>
 #include <stdint.h>
 
-uint8_t* naive_mandlebrot(double x_min, double x_max, double y_min, double y_max, int steps);
+uint8_t* naive_mandlebrot(long double x_min, long double x_max, long double y_min, long double y_max, int steps);
 
 #endif /* MANDLEBROT_H */
