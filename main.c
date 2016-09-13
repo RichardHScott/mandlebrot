@@ -12,14 +12,12 @@
 
 /**********************************************************************/
 /* TODO
-/* add in typedefs to structs to make it easier to read
 /* change one_pixel_blur to an n-pixel variety version
 /* add in an AA-mode, simple FSAA taking four pixels and combining to make
  * one should be sufficent.
 /* change the argument parser to take a array of tuples
  * (char* arg_match_str, char* usage, function ptr to parse function)
  * parse function should be of the form parse(Input_Params*, arg_match_str, argv[i])
-/* split steps into vertical and horizontal divisions, also rename 'steps' is not a good name
 /**********************************************************************/
 
 typedef enum { 
@@ -35,7 +33,8 @@ typedef struct {
     double x_max;
     double y_min;
     double y_max;
-    int steps;
+    int x_divisions;
+    int y_divisions;
 
     Color_Strategy strategy;
 } Input_Params;
@@ -45,7 +44,8 @@ void set_default_input_params(Input_Params* params) {
     params->x_max = 0.3;
     params->y_min = 0.5;
     params->y_max = 1.0;
-    params->steps = 1000;
+    params->x_divisions = 1000;
+    params->y_divisions = 1000;
 
     params->strategy = TANH;
 
@@ -61,7 +61,8 @@ Input_Params* parse_args(int argc, char** argv) {
     const char x_max_str[] = "xmax=";
     const char y_min_str[] = "ymin=";
     const char y_max_str[] = "ymax=";
-    const char steps_str[] = "steps=";
+    const char x_divisions_str[] = "xdivs=";
+    const char y_divisions_str[] = "ydivs=";
 
     Input_Params* params = (Input_Params*) malloc(sizeof(Input_Params));
 
@@ -115,10 +116,18 @@ Input_Params* parse_args(int argc, char** argv) {
             continue;
         }
 
-        if(0 == strncmp(argument, steps_str, strlen(steps_str))) {
-            int val = atoi(argument + strlen(steps_str));
+        if(0 == strncmp(argument, x_divisions_str, strlen(x_divisions_str))) {
+            int val = atoi(argument + strlen(x_divisions_str));
             if(val != 0) {
-                params->steps = val;
+                params->x_divisions = val;
+            }
+            continue;
+        }
+
+        if(0 == strncmp(argument, y_divisions_str, strlen(y_divisions_str))) {
+            int val = atoi(argument + strlen(y_divisions_str));
+            if(val != 0) {
+                params->y_divisions = val;
             }
             continue;
         }
@@ -158,18 +167,18 @@ uint8_t* one_pixel_blur(uint8_t* data, int width, int height) {
 int main(int argc, char** argv) {
     Input_Params* params = parse_args(argc, argv);
 
-    uint8_t* array = naive_mandlebrot(params->x_min, params->x_max, params->y_min, params->y_max, params->steps);
+    uint8_t* array = naive_mandlebrot(params->x_min, params->x_max, params->y_min, params->y_max, params->x_divisions, params->y_divisions);
 
     if(array == NULL) {
         return -1;
     }
 
-    struct Bitmap_Data data;
-    uint8_t* pixel_data = (uint8_t*) malloc(3 * params->steps * params->steps); 
+    Bitmap_Data data;
+    uint8_t* pixel_data = (uint8_t*) malloc(3 * params->x_divisions * params->y_divisions); 
 
-    data.horizontal_pixels = params->steps;
-    data.vertical_pixels = params->steps;
-    data.bitmapArraySize = params->steps* params->steps;
+    data.horizontal_pixels = params->y_divisions;
+    data.vertical_pixels = params->x_divisions;
+    data.bitmapArraySize = params->y_divisions* params->x_divisions;
     data.bitmapArray = pixel_data;
 
     for(int i = 0; i < data.bitmapArraySize; ++i) {
