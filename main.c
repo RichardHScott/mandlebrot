@@ -47,7 +47,7 @@ void set_default_input_params(Input_Params* params) {
     params->x_divisions = 1000;
     params->y_divisions = 1000;
 
-    params->strategy = TANH;
+    params->strategy = LOG;
 
     return;
 }
@@ -87,6 +87,7 @@ Input_Params* parse_args(int argc, char** argv) {
         if(0 == strncmp(argument, x_min_str, strlen(x_min_str))) {
             double val = strtod(argument + strlen(x_min_str), NULL);
             if(val != 0) {
+                printf("%s %f\n", x_min_str, val);
                 params->x_min = val;
             }
             continue;
@@ -95,6 +96,7 @@ Input_Params* parse_args(int argc, char** argv) {
         if(0 == strncmp(argument, y_min_str, strlen(y_min_str))) {
             double val = strtod(argument + strlen(y_min_str), NULL);
             if(val != 0) {
+                printf("%s %f\n", y_min_str, val);
                 params->y_min = val;
             }
             continue;
@@ -103,6 +105,7 @@ Input_Params* parse_args(int argc, char** argv) {
         if(0 == strncmp(argument, x_max_str, strlen(x_max_str))) {
             double val = strtod(argument + strlen(x_max_str), NULL);
             if(val != 0) {
+                printf("%s %f\n", x_max_str, val);
                 params->x_max = val;
             }
             continue;
@@ -111,6 +114,7 @@ Input_Params* parse_args(int argc, char** argv) {
         if(0 == strncmp(argument, y_max_str, strlen(y_max_str))) {
             double val = strtod(argument + strlen(y_max_str), NULL);
             if(val != 0) {
+                printf("%s %f\n", y_max_str, val);
                 params->y_max = val;
             }
             continue;
@@ -119,6 +123,7 @@ Input_Params* parse_args(int argc, char** argv) {
         if(0 == strncmp(argument, x_divisions_str, strlen(x_divisions_str))) {
             int val = atoi(argument + strlen(x_divisions_str));
             if(val != 0) {
+                printf("%s %d\n", x_divisions_str, val);
                 params->x_divisions = val;
             }
             continue;
@@ -127,6 +132,7 @@ Input_Params* parse_args(int argc, char** argv) {
         if(0 == strncmp(argument, y_divisions_str, strlen(y_divisions_str))) {
             int val = atoi(argument + strlen(y_divisions_str));
             if(val != 0) {
+                printf("%s %d\n", y_divisions_str, val);
                 params->y_divisions = val;
             }
             continue;
@@ -145,16 +151,14 @@ static inline uint8_t average(uint8_t* data, int width, int top, int left) {
 }
 
 uint8_t* one_pixel_blur(uint8_t* data, int width, int height) {
-    int i, j;
-
     uint8_t* new_data = (uint8_t*) malloc(width * height * 3);
 
     if(new_data == NULL) {
         return NULL;
     }
 
-    for(i = 1; i < height-1; ++i) {
-        for(j = 3; j < 3*width-6; j+=3) {
+    for(int i = 1; i < height-1; ++i) {
+        for(int j = 3; j < 3*width-6; j+=3) {
             new_data[(i-1)*3*width + (j-3)] = average(data, width, i-1, j-3);
             new_data[(i-1)*3*width + (j-3) + 1] = average(data, width, i-1, j-3+1);
             new_data[(i-1)*3*width + (j-3) + 2] = average(data, width, i-1, j-3+2);
@@ -162,6 +166,28 @@ uint8_t* one_pixel_blur(uint8_t* data, int width, int height) {
     }
 
     return new_data;
+}
+
+Bitmap_Data* four_times_AA(uint8_t* data, int width, int height) {
+    int new_width = width / 2;
+    int new_height = height / 2;
+    uint8_t* new_data = (uint8_t*) malloc(new_width * new_height * 3);
+
+    for(int i = 0; i < new_height-1; ++i) {
+        for(int j = 0; j < new_width; ++j) {
+            new_data[3*i*new_width + 3*j] = (data[6*i*width + 6*j] + data[6*i*width + 6*(j+1)] + data[6*(i+1)*width + 6*j] + data[6*(i+1)*width + 6*(j+1)])/4;
+            new_data[3*i*new_width + 3*j + 1] = (data[6*i*width + 6*j + 1] + data[6*i*width + 6*(j+1) + 1] + data[6*(i+1)*width + 6*j + 1] + data[6*(i+1)*width + 6*(j+1) + 1])/4;
+            new_data[3*i*new_width + 3*j + 2] = (data[6*i*width + 6*j + 2] + data[6*i*width + 6*(j+1) + 2] + data[6*(i+1)*width + 6*j + 2] + data[6*(i+1)*width + 6*(j+1) + 2])/4;
+        }
+    }
+
+    Bitmap_Data* bitmap_data = (Bitmap_Data*) malloc(sizeof(Bitmap_Data));
+    bitmap_data->horizontal_pixels = new_width;
+    bitmap_data->vertical_pixels =  new_height;
+    bitmap_data->bitmapArraySize = new_width*new_height;
+    bitmap_data->bitmapArray = new_data;
+
+    return bitmap_data;
 }
 
 int main(int argc, char** argv) {
@@ -173,47 +199,48 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    Bitmap_Data data;
-    uint8_t* pixel_data = (uint8_t*) malloc(3 * params->x_divisions * params->y_divisions); 
+    Bitmap_Data* data = (Bitmap_Data*) malloc(sizeof(Bitmap_Data));
+    data->horizontal_pixels = params->y_divisions;
+    data->vertical_pixels = params->x_divisions;
+    data->bitmapArraySize = params->y_divisions* params->x_divisions;
+    data->bitmapArray = (uint8_t*) malloc(3 * params->x_divisions * params->y_divisions);
 
-    data.horizontal_pixels = params->y_divisions;
-    data.vertical_pixels = params->x_divisions;
-    data.bitmapArraySize = params->y_divisions* params->x_divisions;
-    data.bitmapArray = pixel_data;
-
-    for(int i = 0; i < data.bitmapArraySize; ++i) {
+    for(int i = 0; i < data->bitmapArraySize; ++i) {
         switch(params->strategy) {
             case BW:
-                data.bitmapArray[3*i] = (array[i] == 0) ? (0) : 1;
+                data->bitmapArray[3*i] = (array[i] == 0) ? (0) : 1;
                 break;
             case SIN:
-                data.bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0)); //sin approach
+                data->bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0)); //sin approach
                 break;
             case LOG:
-                data.bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach, this has the highest 'gain' at the lower end
+                data->bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach, this has the highest 'gain' at the lower end
                 break;
             case TANH:
-                data.bitmapArray[3*i] = 256 * tanh(array[i]/128); //tanh, check gradiant and bounds
+                data->bitmapArray[3*i] = 256 * tanh(array[i]/128); //tanh, check gradiant and bounds
                 break;
             case INT:
             default:
-                data.bitmapArray[3*i] = array[i];
+                data->bitmapArray[3*i] = array[i];
                 break;
         }
 
-        data.bitmapArray[3*i+1] = 0;
-        data.bitmapArray[3*i+2] = 0;
+        data->bitmapArray[3*i+1] = 0;
+        data->bitmapArray[3*i+2] = 0;
     }
 
-    uint8_t* anti_aliased_data = one_pixel_blur(data.bitmapArray, data.horizontal_pixels, data.vertical_pixels);
-    data.bitmapArray = anti_aliased_data;
+    //uint8_t* anti_aliased_data = one_pixel_blur(data->bitmapArray, data->horizontal_pixels, data->vertical_pixels);
+    //data->bitmapArray = anti_aliased_data;
+
+    data = four_times_AA(data->bitmapArray, data->horizontal_pixels, data->vertical_pixels);
 
     FILE* file = fopen("temp.bmp", "wb");
-    save_bitmap_to_disk(&data, file);
-    fclose(file);
 
-    free(anti_aliased_data);
+    if(file != NULL) {
+        save_bitmap_to_disk(data, file);
+        fclose(file);
+    }
+
     free(array);
-    free(pixel_data);
     return 0;
 }
