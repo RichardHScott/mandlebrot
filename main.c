@@ -182,6 +182,7 @@ int main(int argc, char** argv) {
     save_bitmap_to_disk(&data, file);
     fclose(file);
 
+    free(anti_aliased_data);
     free(array);
     free(pixel_data);
     return 0;
