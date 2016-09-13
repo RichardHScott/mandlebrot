@@ -13,13 +13,21 @@
 /**********************************************************************/
 /* TODO
 /* add in typedefs to structs to make it easier to read
+/* change one_pixel_blur to an n-pixel variety version
+/* add in an AA-mode, simple FSAA taking four pixels and combining to make
+ * one should be sufficent.
+/* change the argument parser to take a array of tuples
+ * (char* arg_match_str, char* usage, function ptr to parse function)
+ * parse function should be of the form parse(Input_Params*, arg_match_str, argv[i])
+/* split steps into vertical and horizontal divisions, also rename 'steps' is not a good name
 /**********************************************************************/
 
 typedef enum { 
     BW, //black (in set) and white (out of set)
     INT, //shade based on iterations required to escape
     SIN, //sin based interpretation to 'lighten' quick escapes
-    LOG //log based interpretation to 'lighten' quick escapes
+    LOG, //log based interpretation to 'lighten' quick escapes
+    SIGMOID, //sigmod based, probably look at using tanh method as well
  } Color_Strategy;
 
 typedef struct {
@@ -39,9 +47,13 @@ void set_default_input_params(Input_Params* params) {
     params->y_max = 1.0;
     params->steps = 1000;
 
-    params->strategy = LOG;
+    params->strategy = SIGMOID;
 
     return;
+}
+
+void print_usage() {
+    printf("");
 }
 
 Input_Params* parse_args(int argc, char** argv) {
@@ -62,6 +74,11 @@ Input_Params* parse_args(int argc, char** argv) {
     for(int i = 0; i < argc; ++i) {
         if(argv[i][0] != '-') {
             continue;
+        }
+
+        if(argv[i][1] == 'h' && argv[i][2] == '\0') {
+            print_usage();
+            return NULL;
         }
 
         char* argument  = argv[i] + sizeof(char);
@@ -118,7 +135,7 @@ static inline uint8_t average(uint8_t* data, int width, int top, int left) {
     return total / 4;
 }
 
-uint8_t* anti_aliasing(uint8_t* data, int width, int height) {
+uint8_t* one_pixel_blur(uint8_t* data, int width, int height) {
     int i, j;
 
     uint8_t* new_data = (uint8_t*) malloc(width * height * 3);
@@ -140,6 +157,7 @@ uint8_t* anti_aliasing(uint8_t* data, int width, int height) {
 
 int main(int argc, char** argv) {
     Input_Params* params = parse_args(argc, argv);
+
     uint8_t* array = naive_mandlebrot(params->x_min, params->x_max, params->y_min, params->y_max, params->steps);
 
     if(array == NULL) {
@@ -147,11 +165,11 @@ int main(int argc, char** argv) {
     }
 
     struct Bitmap_Data data;
-    uint8_t* pixel_data = (uint8_t*) malloc(3* params->steps* params->steps); 
+    uint8_t* pixel_data = (uint8_t*) malloc(3 * params->steps * params->steps); 
 
-    data.horizontal_pixels =  params->steps;
-    data.vertical_pixels =  params->steps;
-    data.bitmapArraySize =  params->steps* params->steps;
+    data.horizontal_pixels = params->steps;
+    data.vertical_pixels = params->steps;
+    data.bitmapArraySize = params->steps* params->steps;
     data.bitmapArray = pixel_data;
 
     for(int i = 0; i < data.bitmapArraySize; ++i) {
@@ -165,6 +183,8 @@ int main(int argc, char** argv) {
             case LOG:
                 data.bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach
                 break;
+            case SIGMOID:
+                data.bitmapArray[3*i] = floor(512 * (1/(1+exp(-array[i])) - 0.5));//curve has form 1/(1+e^(-x))
             case INT:
             default:
                 data.bitmapArray[3*i] = array[i];
@@ -175,7 +195,7 @@ int main(int argc, char** argv) {
         data.bitmapArray[3*i+2] = 0;
     }
 
-    uint8_t* anti_aliased_data = anti_aliasing(data.bitmapArray, data.horizontal_pixels, data.vertical_pixels);
+    uint8_t* anti_aliased_data = one_pixel_blur(data.bitmapArray, data.horizontal_pixels, data.vertical_pixels);
     data.bitmapArray = anti_aliased_data;
 
     FILE* file = fopen("temp.bmp", "wb");
