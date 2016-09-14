@@ -13,8 +13,6 @@
 /**********************************************************************/
 /* TODO
 /* change one_pixel_blur to an n-pixel variety version
-/* add in an AA-mode, simple FSAA taking four pixels and combining to make
- * one should be sufficent.
 /* change the argument parser to take a array of tuples
  * (char* arg_match_str, char* usage, function ptr to parse function)
  * parse function should be of the form parse(Input_Params*, arg_match_str, argv[i])
@@ -27,6 +25,8 @@ typedef enum {
     LOG, //log based interpretation to 'lighten' quick escapes
     TANH, //sigmod based, probably look at using tanh method as well
  } Color_Strategy;
+
+const char* Color_Strategy_Strs[8] = { "bw", "int", "sin", "log", "tanh" };
 
 typedef struct {
     double x_min;
@@ -136,6 +136,17 @@ Input_Params* parse_args(int argc, char** argv) {
                 params->y_divisions = val;
             }
             continue;
+        }
+
+        const char* strat_str = "strat=";
+        if(0 == strncmp(argument, strat_str, strlen(strat_str))) {
+            for(int i=0; i < sizeof(Color_Strategy_Strs)/sizeof(Color_Strategy_Strs[0]); ++i) {
+                if(0 == strncmp(argument + strlen(strat_str), Color_Strategy_Strs[i], strlen(Color_Strategy_Strs[i]))) {
+                    params->strategy = i;
+                    printf("%s %s\n", strat_str, Color_Strategy_Strs[i]);
+                    break;
+                }
+            }
         }
     }
 
