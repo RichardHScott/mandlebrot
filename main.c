@@ -10,13 +10,13 @@
 #define M_PI (3.14159265358979323846)
 #endif
 
-/**********************************************************************/
-/* TODO
-/* change one_pixel_blur to an n-pixel variety version
-/* change the argument parser to take a array of tuples
+/**********************************************************************
+ * TODO
+ * change one_pixel_blur to an n-pixel variety version
+ * change the argument parser to take a array of tuples
  * (char* arg_match_str, char* usage, function ptr to parse function)
  * parse function should be of the form parse(Input_Params*, arg_match_str, argv[i])
-/**********************************************************************/
+ **********************************************************************/
 
 typedef enum { 
     BW, //black (in set) and white (out of set)
