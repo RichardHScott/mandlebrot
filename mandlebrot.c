@@ -35,7 +35,14 @@ uint8_t compute_convergence_julia(long double complex c) {
     return 0;
 }
 
-uint8_t* naive_mandlebrot(long double x_min, long double x_max, long double y_min, long double y_max, int x_divisions, int y_divisions) {
+uint8_t* naive_mandlebrot(Mandlebrot_Parameters *params) {
+    long double x_max = params->x_max;
+    long double x_min = params->x_min;
+    long double y_min = params->y_min;
+    long double y_max = params->y_max;
+    int x_divisions = params->x_divisions;
+    int y_divisions = params->y_divisions;
+
     if(x_min >= x_max || y_min >= y_max) {
         return NULL;
     }
@@ -53,7 +60,7 @@ uint8_t* naive_mandlebrot(long double x_min, long double x_max, long double y_mi
     for(int x = 0; x < x_divisions; ++x) {
         for(int y = 0; y < y_divisions; ++y) {
             double long complex z_0 = (x_min + x * x_stepsize) + (y_min + y * y_stepsize) * I;
-            array[x * y_divisions + y] = compute_convergence_julia(z_0);
+            array[x * y_divisions + y] = compute_convergence(z_0);
         }
     }
 

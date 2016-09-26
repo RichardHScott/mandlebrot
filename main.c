@@ -16,6 +16,7 @@
  * change the argument parser to take a array of tuples
  * (char* arg_match_str, char* usage, function ptr to parse function)
  * parse function should be of the form parse(Input_Params*, arg_match_str, argv[i])
+ * move bitmap processing to new file, also move arg parsing to new file
  **********************************************************************/
 
 typedef enum { 
@@ -153,58 +154,20 @@ Input_Params* parse_args(int argc, char** argv) {
     return params;
 }
 
-static inline uint8_t average(uint8_t* data, int width, int top, int left) {
-    uint16_t total = 0;
-
-    total = data[3*width*top + left] + data[3*width*top + left + 3] + data[3*width*(top+1) + left] + data[3*width*(top+1) + left + 3];
-    
-    return total / 4;
-}
-
-uint8_t* one_pixel_blur(uint8_t* data, int width, int height) {
-    uint8_t* new_data = (uint8_t*) malloc(width * height * 3);
-
-    if(new_data == NULL) {
-        return NULL;
-    }
-
-    for(int i = 1; i < height-1; ++i) {
-        for(int j = 3; j < 3*width-6; j+=3) {
-            new_data[(i-1)*3*width + (j-3)] = average(data, width, i-1, j-3);
-            new_data[(i-1)*3*width + (j-3) + 1] = average(data, width, i-1, j-3+1);
-            new_data[(i-1)*3*width + (j-3) + 2] = average(data, width, i-1, j-3+2);
-        }
-    }
-
-    return new_data;
-}
-
-Bitmap_Data* four_times_AA(uint8_t* data, int width, int height) {
-    int new_width = width / 2;
-    int new_height = height / 2;
-    uint8_t* new_data = (uint8_t*) malloc(new_width * new_height * 3);
-
-    for(int i = 0; i < new_height-1; ++i) {
-        for(int j = 0; j < new_width; ++j) {
-            new_data[3*i*new_width + 3*j] = (data[6*i*width + 6*j] + data[6*i*width + 6*(j+1)] + data[6*(i+1)*width + 6*j] + data[6*(i+1)*width + 6*(j+1)])/4;
-            new_data[3*i*new_width + 3*j + 1] = (data[6*i*width + 6*j + 1] + data[6*i*width + 6*(j+1) + 1] + data[6*(i+1)*width + 6*j + 1] + data[6*(i+1)*width + 6*(j+1) + 1])/4;
-            new_data[3*i*new_width + 3*j + 2] = (data[6*i*width + 6*j + 2] + data[6*i*width + 6*(j+1) + 2] + data[6*(i+1)*width + 6*j + 2] + data[6*(i+1)*width + 6*(j+1) + 2])/4;
-        }
-    }
-
-    Bitmap_Data* bitmap_data = (Bitmap_Data*) malloc(sizeof(Bitmap_Data));
-    bitmap_data->horizontal_pixels = new_width;
-    bitmap_data->vertical_pixels =  new_height;
-    bitmap_data->bitmapArraySize = new_width*new_height;
-    bitmap_data->bitmapArray = new_data;
-
-    return bitmap_data;
-}
-
 int main(int argc, char** argv) {
     Input_Params* params = parse_args(argc, argv);
 
-    uint8_t* array = naive_mandlebrot(params->x_min, params->x_max, params->y_min, params->y_max, params->x_divisions, params->y_divisions);
+    Mandlebrot_Parameters fractal_params;
+    fractal_params.x_min = params->x_min;
+    fractal_params.x_max = params->x_max;
+    fractal_params.y_min = params->y_min;
+    fractal_params.y_max = params->y_max;
+    fractal_params.x_divisions = params->x_divisions;
+    fractal_params.y_divisions = params->y_divisions;
+
+    printf("Beginning mandlebrot\n");
+    uint8_t* array = naive_mandlebrot(&fractal_params);
+    printf("End of mandlebrot\n");
 
     if(array == NULL) {
         return -1;
@@ -215,6 +178,15 @@ int main(int argc, char** argv) {
     data->vertical_pixels = params->x_divisions;
     data->bitmapArraySize = params->y_divisions* params->x_divisions;
     data->bitmapArray = (uint8_t*) malloc(3 * params->x_divisions * params->y_divisions);
+
+    //histogram of brightness, idea is to use this to scale the bitmap array brightness.
+    int level[256] = {0};
+    int sum = 0;
+    for(int i = 0; i < data->bitmapArraySize; ++i) {
+        ++level[data->bitmapArray[3*i]];
+        ++level[data->bitmapArray[3*i+1]];
+        ++level[data->bitmapArray[3*i+2]];
+    }
 
     for(int i = 0; i < data->bitmapArraySize; ++i) {
         switch(params->strategy) {
@@ -240,18 +212,11 @@ int main(int argc, char** argv) {
         data->bitmapArray[3*i+2] = 0;
     }
 
-    //uint8_t* anti_aliased_data = one_pixel_blur(data->bitmapArray, data->horizontal_pixels, data->vertical_pixels);
-    //data->bitmapArray = anti_aliased_data;
+    //data = four_times_AA(data->bitmapArray, data->horizontal_pixels, data->vertical_pixels);
 
-    data = four_times_AA(data->bitmapArray, data->horizontal_pixels, data->vertical_pixels);
+    printf("Creating bitmap\n");
+    Bitmap* bitmap = create_bitmap(params->y_divisions, params->x_divisions, data->bitmapArray);
+    save_bitmap(bitmap, "temp.bmp");
 
-    FILE* file = fopen("temp.bmp", "wb");
-
-    if(file != NULL) {
-        save_bitmap_to_disk(data, file);
-        fclose(file);
-    }
-
-    free(array);
     return 0;
 }

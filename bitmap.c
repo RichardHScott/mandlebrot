@@ -1,26 +1,53 @@
 #include "bitmap.h"
 
-typedef struct {
-    uint16_t header;
-    uint32_t file_size;
-    uint16_t reserved1;
-    uint16_t reserved2;
-    uint32_t pixel_data_offset;
-} __attribute__((packed)) Bitmap_File_Header;
 
-typedef struct {
-    uint32_t header_size;
-    int32_t width;
-    int32_t height;
-    uint16_t number_of_color_planes;
-    uint16_t bits_per_pixel;
-    uint32_t compression_method;
-    uint32_t image_size;
-    int32_t horizontal_resolution;
-    int32_t vertical_resolution;
-    uint32_t number_of_colors_in_color_palette;
-    uint32_t number_of_important_colors_used;
-}  __attribute__((packed)) DIB_Header;
+static inline uint8_t average(uint8_t* data, int width, int top, int left) {
+    uint16_t total = 0;
+
+    total = data[3*width*top + left] + data[3*width*top + left + 3] + data[3*width*(top+1) + left] + data[3*width*(top+1) + left + 3];
+    
+    return total / 4;
+}
+
+uint8_t* one_pixel_blur(uint8_t* data, int width, int height) {
+    uint8_t* new_data = (uint8_t*) malloc(width * height * 3);
+
+    if(new_data == NULL) {
+        return NULL;
+    }
+
+    for(int i = 1; i < height-1; ++i) {
+        for(int j = 3; j < 3*width-6; j+=3) {
+            new_data[(i-1)*3*width + (j-3)] = average(data, width, i-1, j-3);
+            new_data[(i-1)*3*width + (j-3) + 1] = average(data, width, i-1, j-3+1);
+            new_data[(i-1)*3*width + (j-3) + 2] = average(data, width, i-1, j-3+2);
+        }
+    }
+
+    return new_data;
+}
+
+Bitmap_Data* four_times_AA(uint8_t* data, int width, int height) {
+    int new_width = width / 2;
+    int new_height = height / 2;
+    uint8_t* new_data = (uint8_t*) malloc(new_width * new_height * 3);
+
+    for(int i = 0; i < new_height-1; ++i) {
+        for(int j = 0; j < new_width; ++j) {
+            new_data[3*i*new_width + 3*j] = (data[6*i*width + 6*j] + data[6*i*width + 6*(j+1)] + data[6*(i+1)*width + 6*j] + data[6*(i+1)*width + 6*(j+1)])/4;
+            new_data[3*i*new_width + 3*j + 1] = (data[6*i*width + 6*j + 1] + data[6*i*width + 6*(j+1) + 1] + data[6*(i+1)*width + 6*j + 1] + data[6*(i+1)*width + 6*(j+1) + 1])/4;
+            new_data[3*i*new_width + 3*j + 2] = (data[6*i*width + 6*j + 2] + data[6*i*width + 6*(j+1) + 2] + data[6*(i+1)*width + 6*j + 2] + data[6*(i+1)*width + 6*(j+1) + 2])/4;
+        }
+    }
+
+    Bitmap_Data* bitmap_data = (Bitmap_Data*) malloc(sizeof(Bitmap_Data));
+    bitmap_data->horizontal_pixels = new_width;
+    bitmap_data->vertical_pixels =  new_height;
+    bitmap_data->bitmapArraySize = new_width*new_height;
+    bitmap_data->bitmapArray = new_data;
+
+    return bitmap_data;
+}
 
 int save_bitmap_to_disk(Bitmap_Data* data, FILE* file) {
     uint32_t line_padding = (4 - (3 * data->horizontal_pixels) % 4) % 4;
@@ -58,4 +85,40 @@ int save_bitmap_to_disk(Bitmap_Data* data, FILE* file) {
     }
 
     return 0;
+}
+
+int save_bitmap(Bitmap *bitmap, char* filename) {
+    FILE* file = fopen(filename, "wb");
+
+    if(file != NULL) {
+        save_bitmap_to_disk(bitmap->data, file);
+        fclose(file);
+    } else {
+        return -1;
+    }
+
+    return 0;
+}
+
+Bitmap* create_bitmap(uint32_t horizontal_dim, uint32_t vertical_dim, uint8_t* data) {
+    Bitmap* bitmap = (Bitmap*) malloc(sizeof(Bitmap));
+
+    if(bitmap == NULL) {
+        return NULL;
+    }
+
+    Bitmap_Data *bitmap_data = (Bitmap_Data*) malloc(sizeof(Bitmap_Data));
+
+    if (bitmap_data != NULL) {
+        bitmap_data->horizontal_pixels = horizontal_dim;
+        bitmap_data->vertical_pixels = vertical_dim;
+        bitmap_data->bitmapArray = data;
+        bitmap_data->bitmapArraySize = horizontal_dim * vertical_dim;
+
+        bitmap->data = bitmap_data;
+    } else {
+        free(bitmap);
+    }
+
+    return bitmap;
 }
