@@ -1,18 +1,31 @@
 #ifndef MANDLEBROT_H
 #define MANDLEBROT_H
 
-#include <malloc.h>
-#include <stdint.h>
+#include <memory>
+#include <cstdint>
+#include <complex>
 
-typedef struct {
-    long double x_min;
-    long double x_max;
-    long double y_min;
-    long double y_max;
-    long double x_divisions;
-    long double y_divisions;
-} Mandlebrot_Parameters;
+class Mandlebrot {
+    private:
+    protected:
+    public:
+        typedef struct {
+        long double x_min;
+        long double x_max;
+        long double y_min;
+        long double y_max;
+        long double x_divisions;
+        long double y_divisions;
+    } Mandlebrot_Parameters;
 
-uint8_t* naive_mandlebrot(Mandlebrot_Parameters *params);
+        std::unique_ptr<Mandlebrot_Parameters> params;
+
+        Mandlebrot(Mandlebrot_Parameters const & params);
+        ~Mandlebrot();
+        Mandlebrot(Mandlebrot const &) = delete;
+        Mandlebrot(Mandlebrot&&) = delete;
+
+        uint8_t* naive_mandlebrot();
+};
 
 #endif /* MANDLEBROT_H */

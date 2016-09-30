@@ -1,14 +1,14 @@
 #include "bitmap.h"
 #include "mandlebrot.h"
 
-#include <malloc.h>
 #include <math.h>
+#include <memory>
+#include <string>
+#include <iostream>
 #include <string.h>
 #include <stdlib.h>
-
-#ifndef M_PI
-#define M_PI (3.14159265358979323846)
-#endif
+#include <malloc.h>
+#include <vector>
 
 /**********************************************************************
  * TODO
@@ -19,15 +19,9 @@
  * move bitmap processing to new file, also move arg parsing to new file
  **********************************************************************/
 
-typedef enum { 
-    BW, //black (in set) and white (out of set)
-    INT, //shade based on iterations required to escape
-    SIN, //sin based interpretation to 'lighten' quick escapes
-    LOG, //log based interpretation to 'lighten' quick escapes
-    TANH, //sigmod based, probably look at using tanh method as well
- } Color_Strategy;
+using namespace std;
 
-const char* Color_Strategy_Strs[8] = { "bw", "int", "sin", "log", "tanh" };
+const vector<string> Color_Strategies{"bw", "int", "sin", "log", "tanh"};
 
 typedef struct {
     double x_min;
@@ -37,35 +31,52 @@ typedef struct {
     int x_divisions;
     int y_divisions;
 
-    Color_Strategy strategy;
+    std::string strategy;
 } Input_Params;
 
-void set_default_input_params(Input_Params* params) {
-    params->x_min = -0.5;
-    params->x_max = 0.3;
-    params->y_min = 0.5;
-    params->y_max = 1.0;
-    params->x_divisions = 1000;
-    params->y_divisions = 1000;
+class ParseInput {
+    private:
+        double x_min;
+        double x_max;
+        double y_min;
+        double y_max;
+        int x_divisions;
+        int y_divisions;
 
-    params->strategy = LOG;
+        std::string strategy;
+    protected:
 
-    return;
-}
+    public:
 
-void print_usage() {
-    printf("");
-}
+        ParseInput();
+        ~ParseInput();
 
-Input_Params* parse_args(int argc, char** argv) {
+        static void set_default_input_params(unique_ptr<Input_Params> const & params) {
+            params->x_min = -0.5;
+            params->x_max = 0.3;
+            params->y_min = 0.5;
+            params->y_max = 1.0;
+            params->x_divisions = 1000;
+            params->y_divisions = 1000;
+
+            params->strategy = "log";
+
+            return;
+        }
+
+        static void Parse(int argc, char** argv, unique_ptr<Input_Params> const & params) {
+            parse_args(argc, argv, params);
+
+            return; 
+        }
+
+        static int parse_args(int argc, char** argv, unique_ptr<Input_Params> const & params) {
     const char x_min_str[] = "xmin=";
     const char x_max_str[] = "xmax=";
     const char y_min_str[] = "ymin=";
     const char y_max_str[] = "ymax=";
     const char x_divisions_str[] = "xdivs=";
     const char y_divisions_str[] = "ydivs=";
-
-    Input_Params* params = (Input_Params*) malloc(sizeof(Input_Params));
 
     if(params == NULL) {
         return NULL;
@@ -79,7 +90,7 @@ Input_Params* parse_args(int argc, char** argv) {
         }
 
         if(argv[i][1] == 'h' && argv[i][2] == '\0') {
-            print_usage();
+            //print_usage();
             return NULL;
         }
 
@@ -141,23 +152,28 @@ Input_Params* parse_args(int argc, char** argv) {
 
         const char* strat_str = "strat=";
         if(0 == strncmp(argument, strat_str, strlen(strat_str))) {
-            for(int i=0; i < sizeof(Color_Strategy_Strs)/sizeof(Color_Strategy_Strs[0]); ++i) {
-                if(0 == strncmp(argument + strlen(strat_str), Color_Strategy_Strs[i], strlen(Color_Strategy_Strs[i]))) {
-                    params->strategy = i;
-                    printf("%s %s\n", strat_str, Color_Strategy_Strs[i]);
+            char* ptr = argument + strlen(strat_str);
+            string s(ptr);
+            for(auto const & v : Color_Strategies) {
+                if(s == v) {
+                    params->strategy = s;
+                printf("%s %s\n", strat_str, v.c_str());
                     break;
                 }
             }
         }
     }
 
-    return params;
+    return 0;
 }
+};
+
 
 int main(int argc, char** argv) {
-    Input_Params* params = parse_args(argc, argv);
+    auto params = make_unique<Input_Params>();
+    ParseInput::Parse(argc, argv, params);
 
-    Mandlebrot_Parameters fractal_params;
+    Mandlebrot::Mandlebrot_Parameters fractal_params;
     fractal_params.x_min = params->x_min;
     fractal_params.x_max = params->x_max;
     fractal_params.y_min = params->y_min;
@@ -166,57 +182,54 @@ int main(int argc, char** argv) {
     fractal_params.y_divisions = params->y_divisions;
 
     printf("Beginning mandlebrot\n");
-    uint8_t* array = naive_mandlebrot(&fractal_params);
+    Mandlebrot mandlebrot(fractal_params);
+    uint8_t* array = mandlebrot.naive_mandlebrot();
     printf("End of mandlebrot\n");
 
     if(array == NULL) {
         return -1;
     }
 
-    Bitmap_Data* data = (Bitmap_Data*) malloc(sizeof(Bitmap_Data));
-    data->horizontal_pixels = params->y_divisions;
-    data->vertical_pixels = params->x_divisions;
-    data->bitmapArraySize = params->y_divisions* params->x_divisions;
-    data->bitmapArray = (uint8_t*) malloc(3 * params->x_divisions * params->y_divisions);
+    auto bitmapArraySize = params->y_divisions* params->x_divisions;
+
+    auto bitmapArray = make_unique<uint8_t[]>(3* params->x_divisions * params->y_divisions);
 
     //histogram of brightness, idea is to use this to scale the bitmap array brightness.
     int level[256] = {0};
     int sum = 0;
-    for(int i = 0; i < data->bitmapArraySize; ++i) {
-        ++level[data->bitmapArray[3*i]];
-        ++level[data->bitmapArray[3*i+1]];
-        ++level[data->bitmapArray[3*i+2]];
+    for(int i = 0; i < bitmapArraySize; ++i) {
+        ++level[bitmapArray[3*i]];
+        ++level[bitmapArray[3*i+1]];
+        ++level[bitmapArray[3*i+2]];
     }
 
-    for(int i = 0; i < data->bitmapArraySize; ++i) {
-        switch(params->strategy) {
-            case BW:
-                data->bitmapArray[3*i] = (array[i] == 0) ? (0) : 1;
-                break;
-            case SIN:
-                data->bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0)); //sin approach
-                break;
-            case LOG:
-                data->bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach, this has the highest 'gain' at the lower end
-                break;
-            case TANH:
-                data->bitmapArray[3*i] = 256 * tanh(array[i]/128); //tanh, check gradiant and bounds
-                break;
-            case INT:
-            default:
-                data->bitmapArray[3*i] = array[i];
-                break;
+    for(int i = 0; i < bitmapArraySize; ++i) {
+        if(params->strategy == "bw") {
+            bitmapArray[3*i] = (array[i] == 0) ? (0) : 1;
+        }
+        else if(params->strategy == "sin") {
+            bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0)); //sin approach
+        }
+        else if(params->strategy == "log") {
+            bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach, this has the highest 'gain' at the lower end
+        }
+        else if(params->strategy == "tanh" ) {
+            bitmapArray[3*i] = 256 * tanh(array[i]/128); //tanh, check gradiant and bounds
+        }
+        else { //if (params->strategy == "int") {
+            bitmapArray[3*i] = array[i];
         }
 
-        data->bitmapArray[3*i+1] = 0;
-        data->bitmapArray[3*i+2] = 0;
+        bitmapArray[3*i+1] = 0;
+        bitmapArray[3*i+2] = 0;
     }
 
     //data = four_times_AA(data->bitmapArray, data->horizontal_pixels, data->vertical_pixels);
 
     printf("Creating bitmap\n");
-    Bitmap* bitmap = create_bitmap(params->y_divisions, params->x_divisions, data->bitmapArray);
-    save_bitmap(bitmap, "temp.bmp");
+
+    BitmapClass bitmap(params->y_divisions, params->x_divisions, bitmapArray);
+    bitmap.WriteToDisk("temp.bmp");
 
     return 0;
 }

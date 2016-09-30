@@ -1,41 +1,53 @@
 #include "mandlebrot.h"
-#include <complex.h>
 
-static inline long double complex_magnitude(long double real, long double img) {
-    return real*real + img*img;
-}
+using namespace std;
 
-uint8_t compute_convergence(long double complex c) {
-    long double complex z = 0 + 0*I;
+static inline uint8_t compute_convergence(complex<long double> c) {
+    complex<long double> z(0, 0);
     
     for(int i = 0; i < UINT8_MAX; ++i) {
-        if(cabsl(z) > 4) {    
+        if(abs(z) > 4) {    
             return i;
         }
 
-        long double complex tmp_z = z;
+        complex<long double> tmp_z = z;
         z = tmp_z*tmp_z + c;
     }
 
     return 0;
 }
 
-uint8_t compute_convergence_julia(long double complex c) {
-    long double complex z = c;
+static inline uint8_t compute_convergence_julia(complex<long double> c) {
+    complex<long double> z = c;
 
     for(int i = 0; i < UINT8_MAX; ++i) {
-        if(cabsl(z) > 9) {    
+        if(abs(z) > 9) {    
             return i;
         }
 
-        long double complex tmp_z = z;
-        z = tmp_z*tmp_z - 0.8*I;
+        complex<long double> tmp_z = z;
+        z = tmp_z*tmp_z - complex<long double>(0, 0.8);
     }
 
     return 0;
 }
 
-uint8_t* naive_mandlebrot(Mandlebrot_Parameters *params) {
+Mandlebrot::Mandlebrot(Mandlebrot_Parameters const & parameters) {
+    params = make_unique<Mandlebrot_Parameters>();
+
+    params->x_max = parameters.x_max;
+    params->x_min = parameters.x_min;
+    params->y_min = parameters.y_min;
+    params->y_max = parameters.y_max;
+    params->x_divisions = parameters.x_divisions;
+    params->y_divisions = parameters.y_divisions;
+}
+
+Mandlebrot::~Mandlebrot() {
+
+}
+
+uint8_t* Mandlebrot::naive_mandlebrot() {
     long double x_max = params->x_max;
     long double x_min = params->x_min;
     long double y_min = params->y_min;
@@ -59,7 +71,7 @@ uint8_t* naive_mandlebrot(Mandlebrot_Parameters *params) {
 
     for(int x = 0; x < x_divisions; ++x) {
         for(int y = 0; y < y_divisions; ++y) {
-            double long complex z_0 = (x_min + x * x_stepsize) + (y_min + y * y_stepsize) * I;
+            complex<long double> z_0(x_min + x * x_stepsize, y_min + y * y_stepsize);
             array[x * y_divisions + y] = compute_convergence(z_0);
         }
     }

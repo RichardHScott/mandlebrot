@@ -1,16 +1,18 @@
 CC=gcc
+CCX=g++-5
 CFLAGS=-Wall -std=c11
+CCXFLAGS=-Wall -std=c++14
 
 all: main
 
 main: main.o mandlebrot.o bitmap.o
-	$(CC) main.o mandlebrot.o bitmap.o -o main -lm
+	$(CCX) main.o mandlebrot.o bitmap.o -o main_cpp
 
-main.o: main.c
-	$(CC) $(CFLAGS) -c main.c
+main.o: main.cpp
+	$(CCX) $(CCXFLAGS) -c main.cpp
 
-mandlebrot.o: mandlebrot.c
-	$(CC) $(CFLAGS) -c mandlebrot.c
+mandlebrot.o: mandlebrot.cpp
+	$(CCX) $(CCXFLAGS) -c mandlebrot.cpp
 
-bitmap.o: bitmap.c
-	$(CC) $(CFLAGS) -c bitmap.c
+bitmap.o: bitmap.cpp
+	$(CCX) $(CCXFLAGS) -c bitmap.cpp
