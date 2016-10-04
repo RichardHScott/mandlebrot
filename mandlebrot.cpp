@@ -47,7 +47,7 @@ Mandlebrot::~Mandlebrot() {
 
 }
 
-uint8_t* Mandlebrot::naive_mandlebrot() {
+unique_ptr<uint8_t[]> Mandlebrot::naive_mandlebrot() {
     long double x_max = params->x_max;
     long double x_min = params->x_min;
     long double y_min = params->y_min;
@@ -63,7 +63,7 @@ uint8_t* Mandlebrot::naive_mandlebrot() {
     long double x_stepsize = (x_max - x_min) / x_divisions;
 
     size_t array_size = y_divisions*x_divisions;
-    uint8_t* array = (uint8_t*) malloc(array_size);
+    auto array = make_unique<uint8_t[]>(array_size);
 
     if(array == NULL) {
         return NULL;
@@ -76,5 +76,5 @@ uint8_t* Mandlebrot::naive_mandlebrot() {
         }
     }
 
-    return array;
+    return std::move(array);
 }

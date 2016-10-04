@@ -25,7 +25,7 @@ class Mandlebrot {
         Mandlebrot(Mandlebrot const &) = delete;
         Mandlebrot(Mandlebrot&&) = delete;
 
-        uint8_t* naive_mandlebrot();
+        std::unique_ptr<uint8_t[]> naive_mandlebrot();
 };
 
 #endif /* MANDLEBROT_H */

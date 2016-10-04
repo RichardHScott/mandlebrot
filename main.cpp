@@ -1,14 +1,10 @@
 #include "bitmap.h"
 #include "mandlebrot.h"
+#include "parseinput.h"
 
-#include <math.h>
 #include <memory>
-#include <string>
 #include <iostream>
-#include <string.h>
 #include <stdlib.h>
-#include <malloc.h>
-#include <vector>
 
 /**********************************************************************
  * TODO
@@ -21,157 +17,8 @@
 
 using namespace std;
 
-const vector<string> Color_Strategies{"bw", "int", "sin", "log", "tanh"};
-
-typedef struct {
-    double x_min;
-    double x_max;
-    double y_min;
-    double y_max;
-    int x_divisions;
-    int y_divisions;
-
-    std::string strategy;
-} Input_Params;
-
-class ParseInput {
-    private:
-        double x_min;
-        double x_max;
-        double y_min;
-        double y_max;
-        int x_divisions;
-        int y_divisions;
-
-        std::string strategy;
-    protected:
-
-    public:
-
-        ParseInput();
-        ~ParseInput();
-
-        static void set_default_input_params(unique_ptr<Input_Params> const & params) {
-            params->x_min = -0.5;
-            params->x_max = 0.3;
-            params->y_min = 0.5;
-            params->y_max = 1.0;
-            params->x_divisions = 1000;
-            params->y_divisions = 1000;
-
-            params->strategy = "log";
-
-            return;
-        }
-
-        static void Parse(int argc, char** argv, unique_ptr<Input_Params> const & params) {
-            parse_args(argc, argv, params);
-
-            return; 
-        }
-
-        static int parse_args(int argc, char** argv, unique_ptr<Input_Params> const & params) {
-    const char x_min_str[] = "xmin=";
-    const char x_max_str[] = "xmax=";
-    const char y_min_str[] = "ymin=";
-    const char y_max_str[] = "ymax=";
-    const char x_divisions_str[] = "xdivs=";
-    const char y_divisions_str[] = "ydivs=";
-
-    if(params == NULL) {
-        return NULL;
-    }
-
-    set_default_input_params(params);
-
-    for(int i = 0; i < argc; ++i) {
-        if(argv[i][0] != '-') {
-            continue;
-        }
-
-        if(argv[i][1] == 'h' && argv[i][2] == '\0') {
-            //print_usage();
-            return NULL;
-        }
-
-        char* argument  = argv[i] + sizeof(char);
-
-        if(0 == strncmp(argument, x_min_str, strlen(x_min_str))) {
-            double val = strtod(argument + strlen(x_min_str), NULL);
-            if(val != 0) {
-                printf("%s %f\n", x_min_str, val);
-                params->x_min = val;
-            }
-            continue;
-        }
-
-        if(0 == strncmp(argument, y_min_str, strlen(y_min_str))) {
-            double val = strtod(argument + strlen(y_min_str), NULL);
-            if(val != 0) {
-                printf("%s %f\n", y_min_str, val);
-                params->y_min = val;
-            }
-            continue;
-        }
-
-        if(0 == strncmp(argument, x_max_str, strlen(x_max_str))) {
-            double val = strtod(argument + strlen(x_max_str), NULL);
-            if(val != 0) {
-                printf("%s %f\n", x_max_str, val);
-                params->x_max = val;
-            }
-            continue;
-        }
-
-        if(0 == strncmp(argument, y_max_str, strlen(y_max_str))) {
-            double val = strtod(argument + strlen(y_max_str), NULL);
-            if(val != 0) {
-                printf("%s %f\n", y_max_str, val);
-                params->y_max = val;
-            }
-            continue;
-        }
-
-        if(0 == strncmp(argument, x_divisions_str, strlen(x_divisions_str))) {
-            int val = atoi(argument + strlen(x_divisions_str));
-            if(val != 0) {
-                printf("%s %d\n", x_divisions_str, val);
-                params->x_divisions = val;
-            }
-            continue;
-        }
-
-        if(0 == strncmp(argument, y_divisions_str, strlen(y_divisions_str))) {
-            int val = atoi(argument + strlen(y_divisions_str));
-            if(val != 0) {
-                printf("%s %d\n", y_divisions_str, val);
-                params->y_divisions = val;
-            }
-            continue;
-        }
-
-        const char* strat_str = "strat=";
-        if(0 == strncmp(argument, strat_str, strlen(strat_str))) {
-            char* ptr = argument + strlen(strat_str);
-            string s(ptr);
-            for(auto const & v : Color_Strategies) {
-                if(s == v) {
-                    params->strategy = s;
-                printf("%s %s\n", strat_str, v.c_str());
-                    break;
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-};
-
-
 int main(int argc, char** argv) {
-    auto params = make_unique<Input_Params>();
-    ParseInput::Parse(argc, argv, params);
+    auto params = ParseInput::Parse(argc, argv);
 
     Mandlebrot::Mandlebrot_Parameters fractal_params;
     fractal_params.x_min = params->x_min;
@@ -183,7 +30,7 @@ int main(int argc, char** argv) {
 
     printf("Beginning mandlebrot\n");
     Mandlebrot mandlebrot(fractal_params);
-    uint8_t* array = mandlebrot.naive_mandlebrot();
+    auto array = mandlebrot.naive_mandlebrot();
     printf("End of mandlebrot\n");
 
     if(array == NULL) {
