@@ -24,20 +24,9 @@ struct Input_Params {
 
 class ParseInput {
     private:
-        double x_min;
-        double x_max;
-        double y_min;
-        double y_max;
-        int x_divisions;
-        int y_divisions;
-
-        std::string strategy;
     protected:
 
     public:
-        ParseInput();
-        ~ParseInput();
-
         static std::unique_ptr<Input_Params> Parse(int argc, char** argv);
         static std::unique_ptr<Input_Params> parse_args(int argc, char** argv);
 };

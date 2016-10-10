@@ -5,8 +5,6 @@ using namespace std;
 
 class BitmapClass {
     private:
-
-
     class Bitmap_Data {
         public:
         uint32_t horizontal_pixels;

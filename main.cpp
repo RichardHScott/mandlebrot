@@ -9,10 +9,6 @@
 /**********************************************************************
  * TODO
  * change one_pixel_blur to an n-pixel variety version
- * change the argument parser to take a array of tuples
- * (char* arg_match_str, char* usage, function ptr to parse function)
- * parse function should be of the form parse(Input_Params*, arg_match_str, argv[i])
- * move bitmap processing to new file, also move arg parsing to new file
  **********************************************************************/
 
 using namespace std;
