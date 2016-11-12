@@ -6,19 +6,21 @@
 #include <memory>
 #include <map>
 
-const std::vector<std::string> Color_Strategies{"bw", "int", "sin", "log", "tanh"};
+#include "color_strategy.h"
+
+//const std::vector<std::string> Color_Strategies{"bw", "int", "sin", "log", "tanh"};
 
 struct Input_Params {
     double x_min;
-    double x_max;
     double y_min;
+    double x_max;
     double y_max;
     int x_divisions;
     int y_divisions;
 
-    std::string strategy = "log";
+    Strategy strategy = strategies[2];
 
-    Input_Params(double xmin = -0.5, double xmax = 0.3, double ymin = 0.5, double ymax = 1.0, int xdivisions = 1000, int ydivisions = 1000)
+    Input_Params(double xmin = -0.5, double xmax = 0.3, double ymin = 0.5, double ymax = 1.0, int xdivisions = 2000, int ydivisions = 2000)
       : x_min(xmin), y_min(ymin), x_max(xmax), y_max(ymax), x_divisions(xdivisions), y_divisions(ydivisions) { }  
 };
 

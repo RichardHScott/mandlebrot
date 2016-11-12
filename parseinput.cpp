@@ -27,8 +27,8 @@ std::unique_ptr<Input_Params> ParseInput::parse_args(int argc, char** argv) {
         }
 
         //otherwise we have found command=value so we split it
-        std::string command = arg.substr(0, std::string::npos);
-        std::string value = arg.substr(std::string::npos, arg.length());
+        std::string command = arg.substr(0, pos);
+        std::string value = arg.substr(pos+1, arg.length());
 
         const auto command_list = std::map<std::string, std::function<void()>>{
             { "xmin", [&params, &value] { params->x_min = std::stod(value); } },
@@ -37,16 +37,21 @@ std::unique_ptr<Input_Params> ParseInput::parse_args(int argc, char** argv) {
             { "ymax", [&params, &value] { params->y_max = std::stod(value); } },
             { "xdivs", [&params, &value] { params->x_divisions = std::stoi(value); } },
             { "ydivs", [&params, &value] { params->y_divisions = std::stoi(value); } },
-            { "strat", [&params, &value] { params->strategy = value; } }
+            { "strat", [&params, &value] {
+                for(auto const & strat : strategies)
+                    if(strat.m_name == value) {
+                        params->strategy = strat;
+                        break;
+                    }
+                } 
+            }
         };
 
-        //find commands and then exectue required setters, probably do this using a lambda
-        //or using a std::pair as <str, (*fp)()> command string and function pointer
         auto iter = command_list.find(command);
         if(iter != command_list.end()) {
             (iter->second)();
         }
     }
 
-    return std::move(params);
+    return params;
 }

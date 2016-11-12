@@ -1,6 +1,7 @@
 #include "bitmap.h"
 #include "mandlebrot.h"
 #include "parseinput.h"
+#include "color_strategy.h"
 
 #include <memory>
 #include <iostream>
@@ -47,22 +48,7 @@ int main(int argc, char** argv) {
     }
 
     for(int i = 0; i < bitmapArraySize; ++i) {
-        if(params->strategy == "bw") {
-            bitmapArray[3*i] = (array[i] == 0) ? (0) : 1;
-        }
-        else if(params->strategy == "sin") {
-            bitmapArray[3*i] = (255*sin(M_PI/2 * array[i]/255.0)); //sin approach
-        }
-        else if(params->strategy == "log") {
-            bitmapArray[3*i] = (!array[i]) ? (0) : (255*log(array[i]) / log(255)); //log approach, this has the highest 'gain' at the lower end
-        }
-        else if(params->strategy == "tanh" ) {
-            bitmapArray[3*i] = 256 * tanh(array[i]/128); //tanh, check gradiant and bounds
-        }
-        else { //if (params->strategy == "int") {
-            bitmapArray[3*i] = array[i];
-        }
-
+        bitmapArray[3*i] = (params->strategy).m_function(array[i]);
         bitmapArray[3*i+1] = 0;
         bitmapArray[3*i+2] = 0;
     }
