@@ -5,7 +5,6 @@
 
 using namespace std;
 
-
 // requires 
 // width mod 4 = 0
 void vectorized(std::unique_ptr<uint8_t[]> const & array, 
@@ -143,9 +142,6 @@ unique_ptr<uint8_t[]> Mandlebrot::naive_mandlebrot() {
         return NULL;
     }
 
-    double y_stepsize = (y_max - y_min) / y_divisions;
-    double x_stepsize = (x_max - x_min) / x_divisions;
-
     size_t array_size = y_divisions*x_divisions;
     auto array = make_unique<uint8_t[]>(array_size);
 
@@ -153,12 +149,20 @@ unique_ptr<uint8_t[]> Mandlebrot::naive_mandlebrot() {
         return NULL;
     }
     
-   using milli = std::chrono::milliseconds;
-
     auto start_vectorized = std::chrono::high_resolution_clock::now();
-    vectorized(array,
-    y_divisions, y_min, y_max,
-    x_divisions, x_min, x_max);
+    
+    /* 
+     * Old method of computing mandlebrot set
+    for(int x = 0; x < x_divisions; ++x) {
+        for(int y = 0; y < y_divisions; ++y) {
+            complex<double> z_0(x_min + x * x_stepsize, y_min + y * y_stepsize);
+            array[x * y_divisions + y] = compute_convergence(z_0);
+        }
+    }
+    */
+
+    vectorized(array, y_divisions, y_min, y_max, x_divisions, x_min, x_max);
+    
     auto end_vectorized = std::chrono::high_resolution_clock::now();
     std::cout << "Vector time: " << (std::chrono::duration<double>(end_vectorized - start_vectorized)).count() << "\r\n";
 

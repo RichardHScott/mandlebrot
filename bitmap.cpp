@@ -57,7 +57,7 @@ int BitmapClass::save_bitmap_to_disk(FILE* file) {
 
     fwrite(&dib_header, sizeof(DIB_Header), 1, file);
     
-    int i = 0;
+    uint32_t i = 0;
     uint32_t zero = 0;
     for(i = 0; i < bitmap->data->vertical_pixels; ++i) {
         fwrite(&bitmap->data->bitmapArray[3*i*bitmap->data->horizontal_pixels], sizeof(uint8_t), 3*bitmap->data->horizontal_pixels, file);

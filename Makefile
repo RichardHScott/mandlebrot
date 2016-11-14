@@ -1,12 +1,14 @@
 CC=gcc
 CCX=g++-5
 CFLAGS=-Wall -std=c11
-CCXFLAGS=-Wall -std=c++14 -mavx -O2
+CCXFLAGS=-Wall -Wextra -std=c++14 -mavx -O2
+
+objects = main.o mandlebrot.o bitmap.o parseinput.o color_strategy.o 
 
 all: main
 
-main: main.o mandlebrot.o bitmap.o parseinput.o color_strategy.o
-	$(CCX) main.o mandlebrot.o bitmap.o parseinput.o color_strategy.o -o main_cpp
+main: $(objects)
+	$(CCX) $(objects) -o main
 
 main.o: main.cpp
 	$(CCX) $(CCXFLAGS) -c main.cpp
@@ -22,3 +24,6 @@ bitmap.o: bitmap.cpp
 
 color_strategy.o: color_strategy.cpp
 	$(CCX) $(CCXFLAGS) -c color_strategy.cpp
+
+clean:
+	rm main $(objects)
