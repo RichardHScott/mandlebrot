@@ -3,8 +3,12 @@
 
 #include <memory>
 #include <cstdint>
-#include <complex>
+
+#include <chrono>
+#include <iostream>
+
 #include <immintrin.h>
+
 
 class Mandlebrot {
 private:
@@ -21,8 +25,7 @@ public:
 
     std::unique_ptr<Mandlebrot_Parameters> params;
 
-    Mandlebrot(Mandlebrot_Parameters const & params);
-    ~Mandlebrot() {}
+    Mandlebrot(std::unique_ptr<Mandlebrot_Parameters> parameters) : params(std::move(parameters)) {};
 
     std::unique_ptr<uint8_t[]> naive_mandlebrot();
 };

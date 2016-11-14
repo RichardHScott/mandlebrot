@@ -1,5 +1,5 @@
 CC=gcc
-CCX=g++-5
+CCX=g++-6
 CFLAGS=-Wall -std=c11
 CCXFLAGS=-Wall -Wextra -std=c++14 -mavx -O2
 

@@ -8,9 +8,9 @@
 
 class Strategy {
     public:
-    Strategy(std::string const & name, std::function<int(int)> func) : m_name(name), m_function(func) {}
+    Strategy(std::string const & name, std::function<uint8_t(int)> func) : m_name(name), m_function(func) {}
     std::string m_name;
-    std::function<int(int)> m_function;
+    std::function<uint8_t(int)> m_function;
     
     protected:
     private:

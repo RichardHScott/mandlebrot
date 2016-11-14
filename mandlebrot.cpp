@@ -1,8 +1,4 @@
 #include "mandlebrot.h"
-
-#include <chrono>
-#include <iostream>
-
 using namespace std;
 
 // requires 
@@ -91,45 +87,6 @@ void vectorized(std::unique_ptr<uint8_t[]> const & array,
     }
 }
 
-static inline uint8_t compute_convergence(complex<double> c) {
-    complex<double> z(0, 0);
-    
-    for(int i = 0; i < UINT8_MAX; ++i) {
-        if(abs(z) > 4) {    
-            return i;
-        }
-
-        z = (z*z) + c;
-    }
-
-    return 0;
-}
-
-static inline uint8_t compute_convergence_julia(complex<double> c) {
-    complex<double> z = c;
-
-    for(int i = 0; i < UINT8_MAX; ++i) {
-        if(abs(z) > 9) {    
-            return i;
-        }
-
-        z = (z*z) - complex<double>(0, 0.8);
-    }
-
-    return 0;
-}
-
-Mandlebrot::Mandlebrot(Mandlebrot_Parameters const & parameters) {
-    params = make_unique<Mandlebrot_Parameters>();
-
-    params->x_max = parameters.x_max;
-    params->x_min = parameters.x_min;
-    params->y_min = parameters.y_min;
-    params->y_max = parameters.y_max;
-    params->x_divisions = parameters.x_divisions;
-    params->y_divisions = parameters.y_divisions;
-}
-
 unique_ptr<uint8_t[]> Mandlebrot::naive_mandlebrot() {
     double x_max = params->x_max;
     double x_min = params->x_min;
@@ -139,14 +96,14 @@ unique_ptr<uint8_t[]> Mandlebrot::naive_mandlebrot() {
     int y_divisions = params->y_divisions;
 
     if(x_min >= x_max || y_min >= y_max) {
-        return NULL;
+        return nullptr;
     }
 
     size_t array_size = y_divisions*x_divisions;
     auto array = make_unique<uint8_t[]>(array_size);
 
-    if(array == NULL) {
-        return NULL;
+    if(array == nullptr) {
+        return nullptr;
     }
     
     auto start_vectorized = std::chrono::high_resolution_clock::now();

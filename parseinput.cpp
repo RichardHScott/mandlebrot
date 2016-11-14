@@ -44,7 +44,8 @@ std::unique_ptr<Input_Params> ParseInput::parse_args(int argc, char** argv) {
                         break;
                     }
                 } 
-            }
+            },
+            { "vel", [&params, &value] { params->compute_velocity = (value == "true"); } }
         };
 
         auto iter = command_list.find(command);
